@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推箱子游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #2c3e50;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .game-container {
+            background-color: #34495e;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 36px;
+            color: #f39c12;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 18px;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            background-color: #2c3e50;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            margin: 5px;
+        }
+
+        .controller-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .controller-connected {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .controller-disconnected {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        #gameCanvas {
+            border: 3px solid #7f8c8d;
+            border-radius: 10px;
+            display: block;
+            background-color: #ecf0f1;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(3, 60px);
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .control-btn {
+            background-color: #3498db;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background-color: #e74c3c;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .action-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+        }
+
+        .level-select {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .level-btn {
+            background-color: #27ae60;
+            border: none;
+            padding: 8px 15px;
+            margin: 0 5px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .level-btn:hover {
+            background-color: #229954;
+        }
+
+        .level-btn.active {
+            background-color: #f39c12;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #bdc3c7;
+        }
+
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .win-message h2 {
+            color: #f39c12;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        .win-message button {
+            background-color: #27ae60;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.2s;
+        }
+
+        .win-message button:hover {
+            background-color: #229954;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 10px;
+            }
+
+            #gameCanvas {
+                max-width: 100%;
+            }
+
+            .control-buttons {
+                grid-template-columns: repeat(3, 50px);
+                grid-template-rows: repeat(3, 50px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <h1 class="game-title">🎮 推箱子</h1>
+        </div>
+
+        <div class="game-info">
+            <div class="info-item">
+                <span>关卡: </span><span id="currentLevel">1</span> / <span id="totalLevels">8</span>
+            </div>
+            <div class="info-item">
+                <span>步数: </span><span id="moves">0</span>
+            </div>
+            <div class="info-item">
+                <span>推箱次数: </span><span id="pushes">0</span>
+            </div>
+            <div class="info-item">
+                <span>手柄: </span>
+                <span id="controllerStatus" class="controller-status controller-disconnected">未连接</span>
+            </div>
+        </div>
+
+        <div class="level-select">
+            <button class="level-btn" onclick="selectLevel(0)">关卡 1</button>
+            <button class="level-btn" onclick="selectLevel(1)">关卡 2</button>
+            <button class="level-btn" onclick="selectLevel(2)">关卡 3</button>
+            <button class="level-btn" onclick="selectLevel(3)">关卡 4</button>
+            <button class="level-btn" onclick="selectLevel(4)">关卡 5</button>
+            <button class="level-btn" onclick="selectLevel(5)">关卡 6</button>
+            <button class="level-btn" onclick="selectLevel(6)">关卡 7</button>
+            <button class="level-btn" onclick="selectLevel(7)">关卡 8</button>
+        </div>
+
+        <canvas id="gameCanvas" width="480" height="480"></canvas>
+
+        <div class="controls">
+            <div class="control-buttons">
+                <div></div>
+                <button class="control-btn" onclick="move('up')">↑</button>
+                <div></div>
+                <button class="control-btn" onclick="move('left')">←</button>
+                <button class="control-btn" onclick="move('down')">↓</button>
+                <button class="control-btn" onclick="move('right')">→</button>
+            </div>
+
+            <div class="action-buttons">
+                <button class="action-btn" onclick="resetLevel()">🔄 重置关卡</button>
+                <button class="action-btn" onclick="undoMove()">↩️ 撤销</button>
+                <button class="action-btn" onclick="showHint()">💡 提示</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <p>使用方向键或点击按钮控制角色移动</p>
+            <p>📦 将所有箱子推到指定位置即可过关</p>
+        </div>
+    </div>
+
+    <div class="win-message" id="winMessage">
+        <h2>🎉 恭喜过关！</h2>
+        <p>总步数: <span id="finalMoves">0</span></p>
+        <p>推箱次数: <span id="finalPushes">0</span></p>
+        <button onclick="nextLevel()">下一关</button>
+        <button onclick="closeWinMessage()">关闭</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const TILE_SIZE = 60;
+        const GRID_WIDTH = 8;
+        const GRID_HEIGHT = 8;
+
+        // 游戏状态
+        let currentLevelIndex = 0;
+        let moves = 0;
+        let pushes = 0;
+        let gameHistory = [];
+        let gameWon = false;
+
+        // 手柄状态
+        let gamepad = null;
+        let controllerConnected = false;
+
+        // 地图元素
+        const EMPTY = 0;
+        const WALL = 1;
+        const PLAYER = 2;
+        const BOX = 3;
+        const TARGET = 4;
+        const BOX_ON_TARGET = 5;
+        const PLAYER_ON_TARGET = 6;
+
+        // 游戏关卡
+        const levels = [
+            {
+                name: "初级训练",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,2,3,4,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "简单开始",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,1,0,0,1],
+                    [1,0,2,3,0,0,0,1],
+                    [1,0,0,0,0,3,0,1],
+                    [1,0,4,0,0,4,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,0,0,1,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "需要思考",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,1,4,0,4,0,1],
+                    [1,0,0,3,0,3,0,1],
+                    [1,0,1,0,2,0,0,1],
+                    [1,0,0,3,0,3,0,1],
+                    [1,0,1,4,0,4,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "多个箱子",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,3,0,0,3,0,1],
+                    [1,0,0,2,0,0,0,1],
+                    [1,0,3,0,0,3,0,1],
+                    [1,0,0,0,4,4,0,1],
+                    [1,0,0,4,4,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "狭窄通道",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,1,1,0,0,1],
+                    [1,0,3,0,0,3,0,1],
+                    [1,0,0,0,2,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,3,0,0,3,0,1],
+                    [1,0,0,1,1,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "经典关卡",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,1,0,0,1],
+                    [1,0,3,0,1,0,3,1],
+                    [1,0,0,0,0,2,0,1],
+                    [1,0,0,4,0,0,0,1],
+                    [1,1,0,4,0,4,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "挑战关卡",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,4,0,0,0,0,1],
+                    [1,0,0,3,3,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,0,2,0,0,0,0,1],
+                    [1,0,0,0,4,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            },
+            {
+                name: "大师关卡",
+                map: [
+                    [1,1,1,1,1,1,1,1],
+                    [1,0,0,0,1,0,0,1],
+                    [1,0,3,0,1,0,0,1],
+                    [1,0,0,0,0,0,0,1],
+                    [1,1,0,4,0,4,0,1],
+                    [1,0,3,0,0,3,0,1],
+                    [1,0,0,0,2,0,0,1],
+                    [1,1,1,1,1,1,1,1]
+                ]
+            }
+        ];
+
+        let currentMap = [];
+        let playerPos = {x: 0, y: 0};
+
+        // 初始化游戏
+        function initGame() {
+            currentMap = JSON.parse(JSON.stringify(levels[currentLevelIndex].map));
+            findPlayerPosition();
+            moves = 0;
+            pushes = 0;
+            gameHistory = [];
+            gameWon = false;
+            updateUI();
+            draw();
+            updateLevelButtons();
+        }
+
+        // 检测手柄连接
+        function checkControllerConnection() {
+            const gamepads = navigator.getGamepads();
+            let found = false;
+
+            for (let i = 0; i < gamepads.length; i++) {
+                if (gamepads[i]) {
+                    if (!controllerConnected) {
+                        controllerConnected = true;
+                        gamepad = gamepads[i];
+                        updateControllerStatus();
+                        console.log('手柄已连接:', gamepad.id);
+                    }
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found && controllerConnected) {
+                controllerConnected = false;
+                gamepad = null;
+                updateControllerStatus();
+                console.log('手柄已断开');
+            }
+        }
+
+        // 更新手柄状态显示
+        function updateControllerStatus() {
+            const statusEl = document.getElementById('controllerStatus');
+            if (controllerConnected) {
+                statusEl.textContent = '已连接';
+                statusEl.className = 'controller-status controller-connected';
+            } else {
+                statusEl.textContent = '未连接';
+                statusEl.className = 'controller-status controller-disconnected';
+            }
+        }
+
+        // 处理手柄输入
+        function handleControllerInput() {
+            if (!gamepad || !controllerConnected || gameWon) return;
+
+            // 检查十字键
+            if (gamepad.buttons[12].pressed) { // 上
+                move('up');
+            } else if (gamepad.buttons[13].pressed) { // 下
+                move('down');
+            } else if (gamepad.buttons[14].pressed) { // 左
+                move('left');
+            } else if (gamepad.buttons[15].pressed) { // 右
+                move('right');
+            }
+
+            // 检查左摇杆
+            const leftStickX = gamepad.axes[0];
+            const leftStickY = gamepad.axes[1];
+            const deadzone = 0.3;
+
+            if (Math.abs(leftStickX) > deadzone || Math.abs(leftStickY) > deadzone) {
+                if (Math.abs(leftStickY) > Math.abs(leftStickX)) {
+                    if (leftStickY < -deadzone) {
+                        move('up');
+                    } else if (leftStickY > deadzone) {
+                        move('down');
+                    }
+                } else {
+                    if (leftStickX > deadzone) {
+                        move('right');
+                    } else if (leftStickX < -deadzone) {
+                        move('left');
+                    }
+                }
+            }
+        }
+
+        // 查找玩家位置
+        function findPlayerPosition() {
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    if (currentMap[y][x] === PLAYER || currentMap[y][x] === PLAYER_ON_TARGET) {
+                        playerPos = {x, y};
+                        return;
+                    }
+                }
+            }
+        }
+
+        // 绘制游戏
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    const tile = currentMap[y][x];
+                    const drawX = x * TILE_SIZE;
+                    const drawY = y * TILE_SIZE;
+
+                    // 绘制地板
+                    if (tile !== WALL) {
+                        ctx.fillStyle = '#bdc3c7';
+                        ctx.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
+                    }
+
+                    // 绘制墙壁
+                    if (tile === WALL) {
+                        ctx.fillStyle = '#34495e';
+                        ctx.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
+                        ctx.strokeStyle = '#2c3e50';
+                        ctx.strokeRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
+                    }
+
+                    // 绘制目标点
+                    if (tile === TARGET || tile === BOX_ON_TARGET) {
+                        ctx.fillStyle = '#f39c12';
+                        ctx.beginPath();
+                        ctx.arc(drawX + TILE_SIZE/2, drawY + TILE_SIZE/2, 20, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // 绘制箱子
+                    if (tile === BOX || tile === BOX_ON_TARGET) {
+                        ctx.fillStyle = tile === BOX_ON_TARGET ? '#27ae60' : '#e67e22';
+                        ctx.fillRect(drawX + 5, drawY + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+                        ctx.strokeStyle = tile === BOX_ON_TARGET ? '#229954' : '#d35400';
+                        ctx.strokeRect(drawX + 5, drawY + 5, TILE_SIZE - 10, TILE_SIZE - 10);
+                    }
+
+                    // 绘制玩家
+                    if (tile === PLAYER || tile === PLAYER_ON_TARGET) {
+                        ctx.fillStyle = tile === PLAYER_ON_TARGET ? '#e74c3c' : '#c0392b';
+                        ctx.beginPath();
+                        ctx.arc(drawX + TILE_SIZE/2, drawY + TILE_SIZE/2, 25, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // 绘制眼睛
+                        ctx.fillStyle = '#fff';
+                        ctx.beginPath();
+                        ctx.arc(drawX + TILE_SIZE/2 - 8, drawY + TILE_SIZE/2 - 8, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(drawX + TILE_SIZE/2 + 8, drawY + TILE_SIZE/2 - 8, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        // 移动逻辑
+        function move(direction) {
+            if (gameWon) return;
+
+            const directions = {
+                'up': {x: 0, y: -1},
+                'down': {x: 0, y: 1},
+                'left': {x: -1, y: 0},
+                'right': {x: 1, y: 0}
+            };
+
+            const dir = directions[direction];
+            const newX = playerPos.x + dir.x;
+            const newY = playerPos.y + dir.y;
+
+            // 检查边界
+            if (newX < 0 || newX >= GRID_WIDTH || newY < 0 || newY >= GRID_HEIGHT) {
+                return;
+            }
+
+            const targetTile = currentMap[newY][newX];
+
+            // 撞墙
+            if (targetTile === WALL) {
+                return;
+            }
+
+            // 推箱子
+            if (targetTile === BOX || targetTile === BOX_ON_TARGET) {
+                const boxNewX = newX + dir.x;
+                const boxNewY = newY + dir.y;
+
+                // 检查箱子能否移动
+                if (boxNewX < 0 || boxNewX >= GRID_WIDTH || boxNewY < 0 || boxNewY >= GRID_HEIGHT) {
+                    return;
+                }
+
+                const boxTargetTile = currentMap[boxNewY][boxNewX];
+
+                if (boxTargetTile === WALL || boxTargetTile === BOX || boxTargetTile === BOX_ON_TARGET) {
+                    return;
+                }
+
+                // 保存历史
+                saveHistory();
+
+                // 移动箱子
+                if (boxTargetTile === TARGET) {
+                    currentMap[boxNewY][boxNewX] = BOX_ON_TARGET;
+                } else {
+                    currentMap[boxNewY][boxNewX] = BOX;
+                }
+
+                // 更新原位置
+                if (targetTile === BOX_ON_TARGET) {
+                    currentMap[newY][newX] = PLAYER_ON_TARGET;
+                } else {
+                    currentMap[newY][newX] = PLAYER;
+                }
+
+                pushes++;
+            } else {
+                // 保存历史
+                saveHistory();
+
+                // 移动玩家
+                if (targetTile === TARGET) {
+                    currentMap[newY][newX] = PLAYER_ON_TARGET;
+                } else {
+                    currentMap[newY][newX] = PLAYER;
+                }
+            }
+
+            // 更新玩家原位置
+            const currentTile = currentMap[playerPos.y][playerPos.x];
+            if (currentTile === PLAYER_ON_TARGET) {
+                currentMap[playerPos.y][playerPos.x] = TARGET;
+            } else {
+                currentMap[playerPos.y][playerPos.x] = EMPTY;
+            }
+
+            playerPos.x = newX;
+            playerPos.y = newY;
+            moves++;
+
+            updateUI();
+            draw();
+            checkWin();
+        }
+
+        // 保存历史记录
+        function saveHistory() {
+            gameHistory.push({
+                map: JSON.parse(JSON.stringify(currentMap)),
+                moves: moves,
+                pushes: pushes,
+                playerPos: {...playerPos}
+            });
+
+            // 限制历史记录数量
+            if (gameHistory.length > 50) {
+                gameHistory.shift();
+            }
+        }
+
+        // 撤销移动
+        function undoMove() {
+            if (gameHistory.length === 0 || gameWon) return;
+
+            const previousState = gameHistory.pop();
+            currentMap = previousState.map;
+            moves = previousState.moves;
+            pushes = previousState.pushes;
+            playerPos = previousState.playerPos;
+
+            updateUI();
+            draw();
+        }
+
+        // 检查是否获胜
+        function checkWin() {
+            for (let y = 0; y < GRID_HEIGHT; y++) {
+                for (let x = 0; x < GRID_WIDTH; x++) {
+                    if (currentMap[y][x] === BOX) {
+                        return false;
+                    }
+                }
+            }
+
+            gameWon = true;
+            showWinMessage();
+        }
+
+        // 显示获胜信息
+        function showWinMessage() {
+            document.getElementById('finalMoves').textContent = moves;
+            document.getElementById('finalPushes').textContent = pushes;
+            document.getElementById('winMessage').style.display = 'block';
+        }
+
+        // 关闭获胜信息
+        function closeWinMessage() {
+            document.getElementById('winMessage').style.display = 'none';
+        }
+
+        // 下一关
+        function nextLevel() {
+            closeWinMessage();
+            currentLevelIndex = (currentLevelIndex + 1) % levels.length;
+            initGame();
+        }
+
+        // 选择关卡
+        function selectLevel(levelIndex) {
+            currentLevelIndex = levelIndex;
+            initGame();
+        }
+
+        // 更新关卡按钮
+        function updateLevelButtons() {
+            const buttons = document.querySelectorAll('.level-btn');
+            buttons.forEach((btn, index) => {
+                if (index === currentLevelIndex) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // 重置关卡
+        function resetLevel() {
+            initGame();
+        }
+
+        // 显示提示
+        function showHint() {
+            alert('提示：\n1. 先把箱子推到角落\n2. 然后推到目标位置\n3. 避免把箱子推到死角\n4. 可以使用撤销功能');
+        }
+
+        // 更新UI
+        function updateUI() {
+            document.getElementById('currentLevel').textContent = currentLevelIndex + 1;
+            document.getElementById('totalLevels').textContent = levels.length;
+            document.getElementById('moves').textContent = moves;
+            document.getElementById('pushes').textContent = pushes;
+            updateControllerStatus();
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (gameWon) return;
+
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    e.preventDefault();
+                    move('up');
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    e.preventDefault();
+                    move('down');
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    e.preventDefault();
+                    move('left');
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    e.preventDefault();
+                    move('right');
+                    break;
+                case 'r':
+                case 'R':
+                    resetLevel();
+                    break;
+                case 'z':
+                case 'Z':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        undoMove();
+                    }
+                    break;
+            }
+        });
+
+        // 触摸控制
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (gameWon) return;
+
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                if (deltaX > 30) {
+                    move('right');
+                } else if (deltaX < -30) {
+                    move('left');
+                }
+            } else {
+                if (deltaY > 30) {
+                    move('down');
+                } else if (deltaY < -30) {
+                    move('up');
+                }
+            }
+        });
+
+        // 初始化游戏
+        window.onload = () => {
+            initGame();
+            // 开始手柄检测循环
+            setInterval(() => {
+                checkControllerConnection();
+                handleControllerInput();
+            }, 100);
+        };
+    </script>
+</body>
+</html>
